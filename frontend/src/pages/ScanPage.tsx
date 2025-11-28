@@ -60,6 +60,15 @@ export default function ScanPage() {
   return (
     <div className="min-h-screen bg-gray-900 flex flex-col items-center justify-center p-8">
       <div className="w-full max-w-4xl">
+        {/* Company Logo */}
+        <div className="flex justify-center mb-8">
+          <img 
+            src="/logo.png" 
+            alt="Company Logo" 
+            className="h-24 w-auto"
+          />
+        </div>
+        
         <h1 className="text-6xl font-bold text-white text-center mb-12">
           CNC Tooling Manager
         </h1>
