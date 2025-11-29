@@ -48,7 +48,7 @@ public class ToolComponentsController : ControllerBase
             Description = dto.Description,
             Manufacturer = dto.Manufacturer,
             AssetTag = dto.AssetTag,
-            UnitCost = dto.UnitCost,
+            UnitCost = dto.UnitCost ?? 0,
             IsActive = dto.IsActive,
             EspritToolId = dto.EspritToolId,
             Notes = dto.Notes,
@@ -73,7 +73,7 @@ public class ToolComponentsController : ControllerBase
         component.Description = dto.Description;
         component.Manufacturer = dto.Manufacturer;
         component.AssetTag = dto.AssetTag;
-        component.UnitCost = dto.UnitCost;
+        component.UnitCost = dto.UnitCost ?? 0;
         component.IsActive = dto.IsActive;
         component.EspritToolId = dto.EspritToolId;
         component.Notes = dto.Notes;

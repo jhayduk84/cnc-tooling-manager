@@ -2,16 +2,15 @@ namespace CncTooling.Domain.Entities;
 
 public class SetupSheet
 {
+    public int Id { get; set; }
     public int SetupSheetId { get; set; }
     public int OperationId { get; set; }
-    public string? FilePath { get; set; }
-    public string? Url { get; set; }
-    public string Format { get; set; } = "PDF"; // PDF, HTML, etc.
-    public string? Description { get; set; }
-    public DateTime CreatedAt { get; set; }
-    public DateTime? UpdatedAt { get; set; }
-    public bool IsActive { get; set; } = true;
-
-    // Navigation properties
     public Operation Operation { get; set; } = null!;
+    public string Instructions { get; set; } = string.Empty;
+    public string FilePath { get; set; } = string.Empty;
+    public string Url { get; set; } = string.Empty;
+    public string Format { get; set; } = string.Empty;
+    public string Description { get; set; } = string.Empty;
+    public bool IsActive { get; set; } = true;
+    public DateTime CreatedAt { get; set; }
 }

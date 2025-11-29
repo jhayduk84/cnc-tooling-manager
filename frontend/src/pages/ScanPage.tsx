@@ -58,14 +58,14 @@ export default function ScanPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-900 flex flex-col items-center justify-center p-8">
+    <div className="min-h-screen bg-black flex flex-col items-center justify-center p-8">
       <div className="w-full max-w-4xl">
         {/* Company Logo */}
-        <div className="flex justify-center mb-8">
+        <div className="flex justify-center mb-2">
           <img 
             src="/logo.png" 
             alt="Company Logo" 
-            className="h-24 w-auto"
+            className="h-256 w-auto"
           />
         </div>
         
