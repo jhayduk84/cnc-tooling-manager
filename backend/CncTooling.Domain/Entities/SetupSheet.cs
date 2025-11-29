@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations.Schema;
+
 namespace CncTooling.Domain.Entities;
 
 public class SetupSheet
@@ -12,5 +14,14 @@ public class SetupSheet
     public string Format { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
     public bool IsActive { get; set; } = true;
+    public bool IsArchived { get; set; } = false;
+    public string? ArchiveReason { get; set; }
+    public int? ReplacedBySetupSheetId { get; set; }
+    
+    [ForeignKey(nameof(ReplacedBySetupSheetId))]
+    public SetupSheet? ReplacedBySetupSheet { get; set; }
+    
+    public int Version { get; set; } = 1;
     public DateTime CreatedAt { get; set; }
+    public DateTime? ArchivedAt { get; set; }
 }

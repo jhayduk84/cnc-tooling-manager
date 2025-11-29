@@ -1,5 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using CncTooling.Application.Services;
+using CncTooling.Infrastructure.Data;
 
 namespace CncTooling.Api.Controllers;
 
@@ -8,10 +10,24 @@ namespace CncTooling.Api.Controllers;
 public class OperationsController : ControllerBase
 {
     private readonly IOperatorService _operatorService;
+    private readonly CncToolingDbContext _context;
 
-    public OperationsController(IOperatorService operatorService)
+    public OperationsController(IOperatorService operatorService, CncToolingDbContext context)
     {
         _operatorService = operatorService;
+        _context = context;
+    }
+
+    // Admin: Get all operations
+    [HttpGet]
+    public async Task<IActionResult> GetAllOperations()
+    {
+        var operations = await _context.Operations
+            .Include(o => o.PartRevision)
+                .ThenInclude(pr => pr.Part)
+            .OrderByDescending(o => o.CreatedAt)
+            .ToListAsync();
+        return Ok(operations);
     }
 
     [HttpGet("{operationId}")]
