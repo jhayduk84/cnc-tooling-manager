@@ -31,6 +31,7 @@ export interface Operation {
 }
 
 export interface SetupSheet {
+  id: number;
   setupSheetId: number;
   operationId: number;
   filePath?: string;

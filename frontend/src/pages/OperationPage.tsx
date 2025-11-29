@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { operatorApi } from '../services/api';
+import { ExcelViewer } from '../components/ExcelViewer';
 import type { Operation, SetupSheet, ToolAssemblyAvailability } from '../types';
 
 export default function OperationPage() {
@@ -137,23 +138,32 @@ export default function OperationPage() {
           </div>
 
           {setupSheet ? (
-            <div className="bg-gray-700 rounded-lg p-4 min-h-96">
-              {setupSheet.format === 'PDF' && (
+            <div className="bg-white rounded-lg overflow-hidden">
+              {(setupSheet.format === 'XLSX' || setupSheet.format === 'XLS') ? (
+                <ExcelViewer 
+                  fileUrl={`http://localhost:5000/api/setupsheets/view/${setupSheet.id}`}
+                  filePath={setupSheet.filePath}
+                  onPrint={handlePrint}
+                />
+              ) : setupSheet.format === 'PDF' ? (
                 <iframe
                   src={setupSheet.url || setupSheet.filePath}
-                  className="w-full h-96 border-0 rounded"
+                  className="w-full h-[600px] border-0 rounded"
                   title="Setup Sheet"
                 />
-              )}
-              {setupSheet.format === 'HTML' && setupSheet.url && (
+              ) : setupSheet.format === 'HTML' && setupSheet.url ? (
                 <iframe
                   src={setupSheet.url}
-                  className="w-full h-96 border-0 rounded"
+                  className="w-full h-[600px] border-0 rounded"
                   title="Setup Sheet"
                 />
-              )}
-              {setupSheet.description && (
-                <p className="text-gray-300 mt-4">{setupSheet.description}</p>
+              ) : (
+                <div className="bg-gray-700 rounded-lg p-8 text-center text-gray-400">
+                  <p className="text-xl">Unsupported format: {setupSheet.format}</p>
+                  {setupSheet.description && (
+                    <p className="text-gray-300 mt-4">{setupSheet.description}</p>
+                  )}
+                </div>
               )}
             </div>
           ) : (

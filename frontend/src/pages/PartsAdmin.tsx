@@ -284,6 +284,26 @@ export const PartsAdmin: React.FC = () => {
     }
   };
 
+  const handleImportTools = async (sheetId: number, operationId: number, partId: number) => {
+    if (!confirm('Import tools from this setup sheet? This will parse the Excel file and create tool records.')) {
+      return;
+    }
+
+    try {
+      const response = await api.post(`/setupsheetparser/import/${sheetId}`, { operationId });
+      const data = response.data;
+      
+      alert(`Successfully imported ${data.toolsCreated} tool(s) and ${data.assembliesCreated} assembly(ies) for operation ${data.operationName}`);
+      
+      // Reload part details to show updated data
+      await loadPartDetails(partId);
+    } catch (error: any) {
+      console.error('Failed to import tools:', error);
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to import tools from setup sheet';
+      alert(`Error: ${errorMessage}`);
+    }
+  };
+
   const handleDeleteSheet = async (sheetId: number, partId: number) => {
     if (!confirm('Are you sure you want to permanently delete this setup sheet?')) return;
 
@@ -766,6 +786,13 @@ export const PartsAdmin: React.FC = () => {
                                               )}
                                             </div>
                                             <div className="flex gap-2">
+                                              <button
+                                                onClick={() => handleImportTools(sheet.id, operation.operationId, part.partId)}
+                                                className="text-purple-400 hover:text-purple-300 text-xs"
+                                                title="Import tools from setup sheet"
+                                              >
+                                                🔧 Import Tools
+                                              </button>
                                               <button
                                                 onClick={() => setViewingSheet(sheet)}
                                                 className="text-blue-400 hover:text-blue-300 text-xs"

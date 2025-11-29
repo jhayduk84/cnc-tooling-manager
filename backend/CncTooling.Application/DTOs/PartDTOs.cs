@@ -37,6 +37,7 @@ public class OperationDto
 
 public class SetupSheetDto
 {
+    public int Id { get; set; }
     public int SetupSheetId { get; set; }
     public int OperationId { get; set; }
     public string? FilePath { get; set; }

@@ -88,6 +88,7 @@ public class OperatorService : IOperatorService
 
         return new SetupSheetDto
         {
+            Id = setupSheet.Id,
             SetupSheetId = setupSheet.SetupSheetId,
             OperationId = setupSheet.OperationId,
             FilePath = setupSheet.FilePath,

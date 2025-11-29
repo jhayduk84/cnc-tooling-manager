@@ -1,6 +1,10 @@
 using Microsoft.EntityFrameworkCore;
 using CncTooling.Application.Services;
 using CncTooling.Infrastructure.Data;
+using OfficeOpenXml;
+
+// Set EPPlus license context (NonCommercial or Commercial)
+ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
 
 var builder = WebApplication.CreateBuilder(args);
 
