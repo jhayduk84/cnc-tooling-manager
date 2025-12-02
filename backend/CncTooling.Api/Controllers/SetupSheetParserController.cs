@@ -215,34 +215,7 @@ public class SetupSheetParserController : ControllerBase
 
         foreach (var tool in tools)
         {
-            // Try to find or create tool component
-            var componentCode = tool.ManufacturerPartNumber;
-            if (string.IsNullOrWhiteSpace(componentCode))
-                componentCode = tool.Description;
-
-            // Check if component exists
-            var existingComponent = _context.ToolComponents
-                .FirstOrDefault(tc => tc.ComponentCode == componentCode);
-
-            if (existingComponent == null)
-            {
-                // Create new component
-                var newComponent = new Domain.Entities.ToolComponent
-                {
-                    ComponentCode = componentCode,
-                    ComponentType = DetermineComponentType(tool.Description),
-                    Description = tool.Description,
-                    Manufacturer = ExtractManufacturer(tool.ManufacturerPartNumber),
-                    AssetTag = tool.ToolNumber,
-                    IsActive = true,
-                    CreatedAt = DateTime.UtcNow
-                };
-                _context.ToolComponents.Add(newComponent);
-                await _context.SaveChangesAsync();
-                existingComponent = newComponent;
-            }
-
-            // Create tool assembly for this tool
+            // Create tool assembly first
             var assembly = new Domain.Entities.ToolAssembly
             {
                 AssemblyName = $"T{tool.ToolNumber} - {tool.Description}",
@@ -254,21 +227,69 @@ public class SetupSheetParserController : ControllerBase
             _context.ToolAssemblies.Add(assembly);
             await _context.SaveChangesAsync();
 
-            // Link component to assembly
-            var assemblyComponent = new Domain.Entities.ToolAssemblyComponent
+            // ==== CREATE CUTTING TOOL COMPONENT ====
+            var cuttingToolPartNumber = tool.ManufacturerPartNumber;
+            if (string.IsNullOrWhiteSpace(cuttingToolPartNumber))
+                cuttingToolPartNumber = tool.Description;
+
+            var cuttingComponent = await GetOrCreateComponent(cuttingToolPartNumber, tool.Description);
+            var cuttingTool = await GetOrCreateTool(tool.ToolNumber, tool.Description, cuttingComponent.Id);
+            var cuttingToolComponent = await GetOrCreateToolComponent(
+                cuttingToolPartNumber, 
+                tool.Description, 
+                tool.ToolNumber,
+                cuttingTool.Id, 
+                cuttingComponent.Id,
+                tool.ManufacturerPartNumber
+            );
+
+            // Link cutting tool to assembly
+            var cuttingAssemblyComponent = new Domain.Entities.ToolAssemblyComponent
             {
-                ToolAssemblyId = assembly.ToolAssemblyId,
-                ToolComponentId = existingComponent.ToolComponentId,
+                ToolAssemblyId = assembly.Id,
+                ComponentId = cuttingComponent.Id,
+                ToolComponentId = cuttingToolComponent.Id,
                 QuantityRequired = 1,
-                IsPrimary = true
+                IsPrimary = true, // Cutting tool is primary
+                Position = 1
             };
-            _context.ToolAssemblyComponents.Add(assemblyComponent);
+            _context.ToolAssemblyComponents.Add(cuttingAssemblyComponent);
+
+            // ==== CREATE HOLDER COMPONENT (if specified) ====
+            if (!string.IsNullOrWhiteSpace(tool.Holder))
+            {
+                var holderPartNumber = tool.Holder;
+                var holderDescription = $"Holder - {tool.Holder}";
+                
+                var holderComponent = await GetOrCreateComponent(holderPartNumber, holderDescription);
+                var holderTool = await GetOrCreateTool($"{tool.ToolNumber}-H", holderDescription, holderComponent.Id);
+                var holderToolComponent = await GetOrCreateToolComponent(
+                    holderPartNumber,
+                    holderDescription,
+                    $"{tool.ToolNumber}-H",
+                    holderTool.Id,
+                    holderComponent.Id,
+                    holderPartNumber
+                );
+
+                // Link holder to assembly
+                var holderAssemblyComponent = new Domain.Entities.ToolAssemblyComponent
+                {
+                    ToolAssemblyId = assembly.Id,
+                    ComponentId = holderComponent.Id,
+                    ToolComponentId = holderToolComponent.Id,
+                    QuantityRequired = 1,
+                    IsPrimary = false, // Holder is not primary
+                    Position = 2
+                };
+                _context.ToolAssemblyComponents.Add(holderAssemblyComponent);
+            }
 
             // Link assembly to operation
             var operationToolAssembly = new Domain.Entities.OperationToolAssembly
             {
                 OperationId = operationId,
-                ToolAssemblyId = assembly.ToolAssemblyId,
+                ToolAssemblyId = assembly.Id,
                 QuantityRequired = 1
             };
             _context.OperationToolAssemblies.Add(operationToolAssembly);
@@ -280,6 +301,81 @@ public class SetupSheetParserController : ControllerBase
         return importedCount;
     }
 
+    private async Task<Domain.Entities.Component> GetOrCreateComponent(string partNumber, string name)
+    {
+        var existing = await _context.Components
+            .FirstOrDefaultAsync(c => c.PartNumber == partNumber);
+
+        if (existing == null)
+        {
+            existing = new Domain.Entities.Component
+            {
+                Name = name,
+                PartNumber = partNumber
+            };
+            _context.Components.Add(existing);
+            await _context.SaveChangesAsync();
+        }
+
+        return existing;
+    }
+
+    private async Task<Domain.Entities.Tool> GetOrCreateTool(string toolNumber, string description, int componentId)
+    {
+        var existing = await _context.Tools
+            .FirstOrDefaultAsync(t => t.ToolNumber == toolNumber && t.ComponentId == componentId);
+
+        if (existing == null)
+        {
+            existing = new Domain.Entities.Tool
+            {
+                ToolNumber = toolNumber,
+                Description = description,
+                Type = DetermineComponentType(description),
+                ComponentId = componentId,
+                Diameter = 0,
+                Length = 0
+            };
+            _context.Tools.Add(existing);
+            await _context.SaveChangesAsync();
+        }
+
+        return existing;
+    }
+
+    private async Task<Domain.Entities.ToolComponent> GetOrCreateToolComponent(
+        string componentCode, 
+        string description, 
+        string assetTag,
+        int toolId, 
+        int componentId,
+        string manufacturerPartNumber)
+    {
+        var existing = await _context.ToolComponents
+            .FirstOrDefaultAsync(tc => tc.ComponentCode == componentCode);
+
+        if (existing == null)
+        {
+            existing = new Domain.Entities.ToolComponent
+            {
+                ToolId = toolId,
+                ComponentId = componentId,
+                ComponentCode = componentCode,
+                ComponentType = DetermineComponentType(description),
+                Description = description,
+                Manufacturer = ExtractManufacturer(manufacturerPartNumber),
+                AssetTag = assetTag,
+                IsActive = true,
+                Quantity = 1,
+                CreatedAt = DateTime.UtcNow
+            };
+            _context.ToolComponents.Add(existing);
+            await _context.SaveChangesAsync();
+        }
+
+        return existing;
+    }
+
     private string DetermineComponentType(string description)
     {
         var desc = description.ToLower();
@@ -288,8 +384,11 @@ public class SetupSheetParserController : ControllerBase
         if (desc.Contains("tap")) return "Tap";
         if (desc.Contains("bore") || desc.Contains("boring")) return "Boring Bar";
         if (desc.Contains("reamer")) return "Reamer";
-        if (desc.Contains("holder") || desc.Contains("chuck")) return "Holder";
+        if (desc.Contains("holder")) return "Holder";
         if (desc.Contains("collet")) return "Collet";
+        if (desc.Contains("chuck")) return "Chuck";
+        if (desc.Contains("adapter")) return "Adapter";
+        if (desc.Contains("er") && (desc.Contains("collet") || desc.Length < 10)) return "ER Collet";
         return "Other";
     }
 
